@@ -34,7 +34,9 @@
             ResourceNotFoundException
             ScanRequest
             QueryRequest
-            WriteRequest]))
+            WriteRequest
+            QueryResult
+            ScanResult]))
 
 (defn- db-client*
   "Get a AmazonDynamoDBClient instance for the supplied credentials."
@@ -45,7 +47,7 @@
       (.setEndpoint client endpoint))
     client))
 
-(def db-client
+(def ^AmazonDynamoDBClient db-client
   (memoize db-client*))
 
 (defprotocol AsMap
@@ -55,7 +57,7 @@
 
 (defn- get-value
   "Get the value of an AttributeValue object."  
-  [attr-value]
+  [^AttributeValue attr-value]
   (or (.getS attr-value)
       (-?>> (.getN attr-value)  to-long)
       (-?>> (.getNS attr-value) (map to-long) (into #{}))
@@ -363,10 +365,18 @@
              (partition 3 (flatten reqs))))
           (group-by #(name (second %)) requests)))))))
 
-(defn- result-map [results]
-  {:items    (map item-map (.getItems results))
-   :count    (.getCount results)
-   :last-key (as-map (.getLastEvaluatedKey results))})
+(defmacro ^:private result-map [type]
+  (let [results (with-meta (gensym 'results) {:tag type})]
+    `(fn [~results]
+       {:items    (map item-map (.getItems ~results))
+        :count    (.getCount ~results)
+        :last-key (as-map (.getLastEvaluatedKey ~results))})))
+
+(def ^:private query-result-map
+  (result-map QueryResult))
+
+(def ^:private scan-result-map
+  (result-map ScanResult))
 
 (defn- scan-request
   "Create a ScanRequest object."
@@ -390,19 +400,20 @@
     :count    - the count of items matching the query
     :last-key - the last evaluated key (useful for paging) "
   [cred table & [options]]
-  (result-map
+  (scan-result-map
    (.scan
     (db-client cred)
     (scan-request table options))))
 
 (defn- set-range-condition
   "Add the range key condition to a QueryRequest object"
-  [query-request operator & [range-key range-end]]
+  [^QueryRequest query-request ^String operator & [range-key range-end]]
   (let [attribute-list (->> [range-key range-end] (remove nil?) (map to-attr-value))]
-    (.setRangeKeyCondition query-request
-                           (doto (Condition.)
-                             (.withComparisonOperator operator)
-                             (.withAttributeValueList attribute-list)))))
+    (.setRangeKeyCondition
+     query-request
+     (doto (Condition.)
+       (.setComparisonOperator operator)
+       (.setAttributeValueList attribute-list)))))
 
 (defn- normalize-operator
   "Maps Clojure operators to DynamoDB operators"
@@ -453,7 +464,7 @@
     :last-key - the last evaluated key (useful for paging)"
   [cred table hash-key & range-and-options]
   (let [[range options] (extract-range range-and-options)]
-    (result-map
+    (query-result-map
      (.query
       (db-client cred)
       (query-request table hash-key range options)))))
