@@ -1,10 +1,12 @@
 (ns rotary.client
   "Amazon DynamoDB client functions."
   (:use [clojure.algo.generic.functor :only (fmap)]
-        [clojure.core.incubator :only (-?>>)])
+        [clojure.core.incubator :only (-?>>)]
+        [clojure.java.data :only (to-java)])
   (:require [clojure.string :as str])
   (:import com.amazonaws.auth.BasicAWSCredentials
            com.amazonaws.services.dynamodb.AmazonDynamoDBClient
+           com.amazonaws.ClientConfiguration
            [com.amazonaws.services.dynamodb.model
             AttributeValue
             BatchGetItemRequest
@@ -45,6 +47,11 @@
         client (AmazonDynamoDBClient. aws-creds)]
     (when-let [endpoint (:endpoint cred)]
       (.setEndpoint client endpoint))
+    (when-let [client-configuration (:client-configuration cred)]
+      (let [c (if (map? client-configuration)
+                (to-java ClientConfiguration client-configuration)
+                client-configuration)]
+        (.setConfiguration client c)))
     client))
 
 (def ^AmazonDynamoDBClient db-client
