@@ -1,4 +1,4 @@
-(defproject org.clojars.doo/rotary "0.3.2"
+(defproject org.clojars.doo/rotary "0.3.3"
   :description "Amazon DynamoDB API"
   :dependencies [[org.clojure/clojure "1.2.1"]
                  [org.clojure/algo.generic "0.1.0"]
