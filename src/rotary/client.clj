@@ -38,7 +38,8 @@
             QueryRequest
             WriteRequest
             QueryResult
-            ScanResult]))
+            ScanResult]
+           java.nio.ByteBuffer))
 
 (defn- db-client*
   "Get a AmazonDynamoDBClient instance for the supplied credentials."
@@ -62,13 +63,17 @@
 
 (defn- to-long [x] (Long. x))
 
+(defn- to-byte-array [x] (.array x))
+
 (defn- get-value
   "Get the value of an AttributeValue object."  
   [^AttributeValue attr-value]
   (or (.getS attr-value)
       (-?>> (.getN attr-value)  to-long)
+      (-?>> (.getB attr-value) to-byte-array)
       (-?>> (.getNS attr-value) (map to-long) (into #{}))
-      (-?>> (.getSS attr-value) (into #{}))))
+      (-?>> (.getSS attr-value) (into #{}))
+      (-?>> (.getBS attr-value) (map to-byte-array) (into #{}))))
 
 (defn- key-schema-element
   "Create a KeySchemaElement object."
@@ -222,14 +227,28 @@
 (defn- set-of [f s]
   (and (set? s) (every? f s)))
 
+(defn- byte-array? [value]
+  (= (class value) (Class/forName "[B")))
+
+(defn- bytes? [value]
+  (or (byte-array? value)
+      (instance? ByteBuffer value)))
+
+(defn- prepare-bytes [value]
+  (if (byte-array? value)
+    (ByteBuffer/wrap value)
+    value))
+
 (defn- to-attr-value
   "Convert a value into an AttributeValue object."
   [value]
   (cond
    (string? value)        (doto (AttributeValue.) (.setS value))
    (number? value)        (doto (AttributeValue.) (.setN (str value)))
+   (bytes? value) (doto (AttributeValue.) (.setB (prepare-bytes value)))
    (set-of string? value) (doto (AttributeValue.) (.setSS value))
    (set-of number? value) (doto (AttributeValue.) (.setNS (map str value)))
+   (set-of bytes? value) (doto (AttributeValue.) (.setBS (map prepare-bytes value)))
    (set? value)    (throw (Exception. "Set must be all numbers or all strings"))
    :else           (throw (Exception. (str "Unknown value type: " (type value))))))
 
