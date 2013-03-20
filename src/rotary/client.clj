@@ -271,18 +271,20 @@
   (as-map [result]
     (item-map (.getAttributes result))))
 
+(defn ^PutItemRequest put-item-request [table item]
+  (doto (PutItemRequest.)
+    (.setTableName table)
+    (.setItem
+     (into {}
+           (for [[k v] item]
+             [(name k) (to-attr-value v)])))))
 
 (defn put-item
   "Add an item (a Clojure map) to a DynamoDB table."
   [cred table item]
   (.putItem
    (db-client cred)
-   (doto (PutItemRequest.)
-     (.setTableName table)
-     (.setItem
-      (into {}
-            (for [[k v] item]
-              [(name k) (to-attr-value v)]))))))
+   (put-item-request table item)))
 
 (defn- item-key
   "Create a Key object from a value."
