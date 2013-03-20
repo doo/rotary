@@ -22,6 +22,7 @@
             DescribeTableResult
             DeleteTableRequest
             DeleteItemRequest
+            DeleteItemResult
             DeleteRequest
             GetItemRequest
             GetItemResult
@@ -32,6 +33,7 @@
             ProvisionedThroughput
             ProvisionedThroughputDescription
             PutItemRequest
+            PutItemResult
             PutRequest
             ResourceNotFoundException
             ScanRequest
@@ -261,7 +263,14 @@
 (extend-protocol AsMap
   GetItemResult
   (as-map [result]
-    (item-map (.getItem result))))
+    (item-map (.getItem result)))
+  PutItemResult
+  (as-map [result]
+    (item-map (.getAttributes result)))
+  DeleteItemResult
+  (as-map [result]
+    (item-map (.getAttributes result))))
+
 
 (defn put-item
   "Add an item (a Clojure map) to a DynamoDB table."
