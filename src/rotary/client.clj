@@ -306,12 +306,15 @@
       (.setTableName table)
       (.setKey (item-key {:hash-key hash-key}))))))
 
+(defn ^DeleteItemRequest delete-item-request [table hash-key]
+  (DeleteItemRequest. table (item-key {:hash-key hash-key})))
+
 (defn delete-item
   "Delete an item from a DynamoDB table by its hash key."
   [cred table hash-key]
   (.deleteItem
    (db-client cred)
-   (DeleteItemRequest. table (item-key {:hash-key hash-key}))))
+   (delete-item-request table hash-key)))
 
 (extend-protocol AsMap
   Key
