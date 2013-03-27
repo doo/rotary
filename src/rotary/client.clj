@@ -65,7 +65,7 @@
 
 (defn- to-long [x] (Long. x))
 
-(defn- to-byte-array [x] (.array x))
+(defn- to-byte-array [^ByteBuffer x] (.array x))
 
 (defn- get-value
   "Get the value of an AttributeValue object."  
