@@ -247,11 +247,11 @@
   (cond
    (string? value)        (doto (AttributeValue.) (.setS value))
    (number? value)        (doto (AttributeValue.) (.setN (str value)))
-   (bytes? value) (doto (AttributeValue.) (.setB (prepare-bytes value)))
+   (bytes? value)         (doto (AttributeValue.) (.setB (prepare-bytes value)))
    (set-of string? value) (doto (AttributeValue.) (.setSS value))
    (set-of number? value) (doto (AttributeValue.) (.setNS (map str value)))
-   (set-of bytes? value) (doto (AttributeValue.) (.setBS (map prepare-bytes value)))
-   (set? value)    (throw (Exception. "Set must be all numbers or all strings"))
+   (set-of bytes? value)  (doto (AttributeValue.) (.setBS (map prepare-bytes value)))
+   (set? value)    (throw (Exception. "Set must be all numbers, strings or bytes"))
    :else           (throw (Exception. (str "Unknown value type: " (type value))))))
 
 (defn- item-map
