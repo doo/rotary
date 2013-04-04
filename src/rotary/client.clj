@@ -319,8 +319,10 @@
 (extend-protocol AsMap
   Key
   (as-map [k]
-    {:hash-key  (get-value (.getHashKeyElement k))
-     :range-key (get-value (.getRangeKeyElement k))})
+    (merge
+     {}
+     (when-let [h (.getHashKeyElement k)] {:hash-key (get-value h)})
+     (when-let [r (.getRangeKeyElement k)] {:range-key (get-value r)})))
   nil
   (as-map [_] nil))
 
